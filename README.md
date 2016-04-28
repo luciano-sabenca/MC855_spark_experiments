@@ -23,7 +23,7 @@ To run the aplication, using the provided IPs and city location data execute:
 $SPARK_HOME/bin/spark-submit --class $CALCULATION_APPROACH --master local[4] build/lib/spark_experiments.jar
 ```
 
-where $CALCULATION_APPROACH shoudl be one of the following strings: "trabalho2.BruteForceIPLocalization" or "IPLocalizationOptimized". This command should run under the project root directory, so resource can be reached. Another possible approach is to create directory structure `src/main/resources/` with this exact name, and put the file resource inside it. 
+where `$CALCULATION_APPROACH` should be one of the following strings: "trabalho2.BruteForceIPLocalization" or "IPLocalizationOptimized". This command should run under the project root directory, so resource can be reached. Another possible approach is to use command line arguments (check code for details). 
 
 ## Running with Apache Spark - cluster machine mode
 TODO
