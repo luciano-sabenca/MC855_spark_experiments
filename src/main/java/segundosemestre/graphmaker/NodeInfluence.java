@@ -30,6 +30,10 @@ public class NodeInfluence implements Serializable, Comparable<NodeInfluence> {
     public Integer getDst() {
         return dst;
     }
+    
+    public void setDst(Integer dst) {
+        this.dst = dst;
+    }
 
     public Double getInfluence() {
         return influence;

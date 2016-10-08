@@ -1,11 +1,18 @@
 package segundosemestre.graphAnalysis;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function2;
+import org.apache.spark.api.java.function.PairFunction;
 
+import scala.Tuple2;
 import segundosemestre.graphmaker.NodeInfluence;
 
 public class MainGraphAnalysis {
@@ -19,57 +26,68 @@ public class MainGraphAnalysis {
         JavaRDD<String> graphStateData = sparkContext.textFile(graphState);//.cache();
         System.out.println(graphStateData.collect());
         
-        //Get Node greatest influence
-        JavaRDD<NodeInfluence> allNodesInfluence = graphStateData.map(new Function<String, NodeInfluence>() {
+        JavaRDD<NodeInfluence> allNodesInfluence2 = graphStateData.flatMap(new FlatMapFunction<String, NodeInfluence>() {
 
-            private static final long serialVersionUID = 5651260484225642994L;
+            private static final long serialVersionUID = 2438252684892282708L;
 
             @Override
-            public NodeInfluence call(String v1) throws Exception {
-                NodeInfluence influence = new NodeInfluence();
-                Double totalInfluence = 0.0;
+            public Iterator<NodeInfluence> call(String t) throws Exception {
+                List<NodeInfluence> influences = new ArrayList<NodeInfluence>();
                 
-                String[] nodeEdges = v1.split(",");
-                influence.setSrc(Integer.parseInt(nodeEdges[0].trim()));
+                String[] nodeEdges = t.split(",");
                 
                 for(int i = 1; i < nodeEdges.length; i++) {
+                    NodeInfluence influence = new NodeInfluence();
+                    influence.setSrc(Integer.parseInt(nodeEdges[0].trim()));
+                    
                     String[] edge = nodeEdges[i].split("->");
-                    totalInfluence += Double.parseDouble(edge[1]);
+                    influence.setDst(Integer.parseInt(edge[0].trim()));
+                    influence.setInfluence(Double.parseDouble(edge[1].trim()));
+                    
+                    influences.add(influence);
                 }
                 
-                influence.setInfluence(totalInfluence);
-                
-                return influence;
+                return influences.iterator();
             }
         });
         
-        NodeInfluence nodeMaxInfluence = allNodesInfluence.reduce(new Function2<NodeInfluence, NodeInfluence, NodeInfluence>() {
-            
-            private static final long serialVersionUID = -6235804602023425066L;
+       JavaPairRDD<Integer, Double> nodesInfluencePair = allNodesInfluence2.mapToPair(new PairFunction<NodeInfluence, Integer, Double>() {
+
+            private static final long serialVersionUID = 4642931900100260790L;
 
             @Override
-            public NodeInfluence call(NodeInfluence v1, NodeInfluence v2) throws Exception {
-                if(v1.getInfluence() > v2.getInfluence()) {
-                    return v1;
-                } else {
-                    return v2;
-                }
+            public Tuple2<Integer, Double> call(NodeInfluence t) throws Exception {
+                return new Tuple2<Integer, Double>(t.getSrc(), t.getInfluence());
             }
         });
-        
-        /*NodeInfluence nodeMaxInfluence = allNodesInfluence.max(new Comparator<NodeInfluence>() {
-            
+       
+       JavaPairRDD<Integer, Double> nodesInfluenceReduced = nodesInfluencePair.reduceByKey(new Function2<Double, Double, Double>() {
+           
+        private static final long serialVersionUID = -7384522718223388271L;
+
             @Override
-            public int compare(NodeInfluence o1, NodeInfluence o2) {
-                if(o1.getInfluence() > o2.getInfluence()) {
-                    return 1;
-                } else {
-                    return -1;
-                }
+            public Double call(Double v1, Double v2) throws Exception {
+                return v1 + v2;
             }
-        });*/
-        
-        System.out.println("ID: " + nodeMaxInfluence.getSrc().toString() + " | Influence: " + nodeMaxInfluence.getInfluence().toString());
+        });
+       
+       Tuple2<Integer, Double> maxInfluenceNode = nodesInfluenceReduced
+                .reduce(new Function2<Tuple2<Integer, Double>, Tuple2<Integer, Double>, Tuple2<Integer, Double>>() {
+
+                    private static final long serialVersionUID = -1151045189581289744L;
+
+                    @Override
+                    public Tuple2<Integer, Double> call(Tuple2<Integer, Double> v1, Tuple2<Integer, Double> v2)
+                            throws Exception {
+                        if(Double.compare(v1._2(), v2._2()) > 0) {
+                            return v1;
+                        } else {
+                            return v2;
+                        }
+                    }
+                });
+       
+       System.out.println("ID: " + maxInfluenceNode._1() + " | Influence: " + maxInfluenceNode._2());
         
         sparkContext.close();
     }
