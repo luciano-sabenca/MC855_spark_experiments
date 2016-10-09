@@ -36,7 +36,17 @@ object GraphInfluence {
     )
 
 
+
+
     println(v.vertices.collect().mkString("\n"))
+
+
+    val toBeSave: RDD[String] = v.vertices.map({
+      case (k, v) => s"$k" + v.filterKeys(k2 => k2 != k ).map( {case (k2, v2) => s",$k2 -> $v2" }).mkString("")
+    })
+
+    toBeSave.filter(v => v.contains(",")).saveAsTextFile("output.txt")
+
   }
 
 

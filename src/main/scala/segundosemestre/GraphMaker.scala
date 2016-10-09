@@ -41,7 +41,14 @@ object GraphMaker {
 
     val graph = Graph(createNodes(sc, MAX_NODES), createEdges(sc, MAX_EDGES, MAX_NODES))
 
-    graph.pageRank(100).vertices.foreach(println)
+    val groupBy  = graph.edges.groupBy(edge => edge.srcId)
+    groupBy.saveAsTextFile("teste")
+    val toBeSave: RDD[String] = groupBy.map({
+      case (id: VertexId, nodes: Iterable[Edge[Double]]) => s"$id" + nodes.map(edge => s",${edge.dstId} -> ${edge.attr}").mkString(" ")
+    })
+
+
+    toBeSave.saveAsTextFile("teste.txt")
 
 
 
