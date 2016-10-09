@@ -9,7 +9,6 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 
 import scala.Tuple2;
@@ -18,15 +17,38 @@ import segundosemestre.graphmaker.NodeInfluence;
 public class MainGraphAnalysis {
 
     public static void main(String[] args) {
+        AverageAnalysis average = new AverageAnalysis();
+        MaxInfluenceAnalysis maxInfluence = new MaxInfluenceAnalysis();
+        
         String dir = System.getProperty("user.dir");
         String graphState = dir + "/src/main/resources/mc855/lastGraph";
-        
+
         SparkConf conf = new SparkConf().setAppName("MetricsGraph").setMaster("local[2]");
         JavaSparkContext sparkContext = new JavaSparkContext(conf);
-        JavaRDD<String> graphStateData = sparkContext.textFile(graphState);//.cache();
-        System.out.println(graphStateData.collect());
+        JavaRDD<String> graphStateData = sparkContext.textFile(graphState);// .cache();
+        JavaRDD<NodeInfluence> allNodesInfluence = toNodeInfluenceRdd(graphStateData);
+        JavaPairRDD<Integer, Double> nodesInfluencePair = toPair(allNodesInfluence);
         
-        JavaRDD<NodeInfluence> allNodesInfluence2 = graphStateData.flatMap(new FlatMapFunction<String, NodeInfluence>() {
+        average.computeAverage(nodesInfluencePair);
+        maxInfluence.computeMaxInfluence(nodesInfluencePair);
+
+        sparkContext.close();
+    }
+
+    private static JavaPairRDD<Integer, Double> toPair(JavaRDD<NodeInfluence> allNodesInfluence) {
+        return allNodesInfluence.mapToPair(new PairFunction<NodeInfluence, Integer, Double>() {
+
+            private static final long serialVersionUID = 4642931900100260790L;
+
+            @Override
+            public Tuple2<Integer, Double> call(NodeInfluence t) throws Exception {
+                return new Tuple2<Integer, Double>(t.getSrc(), t.getInfluence());
+            }
+        });
+    }
+    
+    private static JavaRDD<NodeInfluence> toNodeInfluenceRdd(JavaRDD<String> graphStateData) {
+        return graphStateData.flatMap(new FlatMapFunction<String, NodeInfluence>() {
 
             private static final long serialVersionUID = 2438252684892282708L;
 
@@ -50,45 +72,5 @@ public class MainGraphAnalysis {
                 return influences.iterator();
             }
         });
-        
-       JavaPairRDD<Integer, Double> nodesInfluencePair = allNodesInfluence2.mapToPair(new PairFunction<NodeInfluence, Integer, Double>() {
-
-            private static final long serialVersionUID = 4642931900100260790L;
-
-            @Override
-            public Tuple2<Integer, Double> call(NodeInfluence t) throws Exception {
-                return new Tuple2<Integer, Double>(t.getSrc(), t.getInfluence());
-            }
-        });
-       
-       JavaPairRDD<Integer, Double> nodesInfluenceReduced = nodesInfluencePair.reduceByKey(new Function2<Double, Double, Double>() {
-           
-        private static final long serialVersionUID = -7384522718223388271L;
-
-            @Override
-            public Double call(Double v1, Double v2) throws Exception {
-                return v1 + v2;
-            }
-        });
-       
-       Tuple2<Integer, Double> maxInfluenceNode = nodesInfluenceReduced
-                .reduce(new Function2<Tuple2<Integer, Double>, Tuple2<Integer, Double>, Tuple2<Integer, Double>>() {
-
-                    private static final long serialVersionUID = -1151045189581289744L;
-
-                    @Override
-                    public Tuple2<Integer, Double> call(Tuple2<Integer, Double> v1, Tuple2<Integer, Double> v2)
-                            throws Exception {
-                        if(Double.compare(v1._2(), v2._2()) > 0) {
-                            return v1;
-                        } else {
-                            return v2;
-                        }
-                    }
-                });
-       
-       System.out.println("ID: " + maxInfluenceNode._1() + " | Influence: " + maxInfluenceNode._2());
-        
-        sparkContext.close();
     }
 }
