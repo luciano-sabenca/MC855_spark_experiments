@@ -1,6 +1,7 @@
 package segundosemestre.graphAnalysis;
 
 import java.io.Serializable;
+import java.util.Comparator;
 
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.function.Function2;
@@ -10,6 +11,16 @@ import scala.Tuple2;
 public class MaxInfluenceAnalysis implements Serializable {
     
     private static final long serialVersionUID = -6291209375768604631L;
+    
+    private class MaxComparator implements Serializable, Comparator<Tuple2<Integer,Double>> {
+        
+        private static final long serialVersionUID = -7410269533834544555L;
+
+        @Override
+        public int compare(Tuple2<Integer, Double> o1, Tuple2<Integer, Double> o2) {
+            return Double.compare(o1._2(), o2._2());
+        }
+    }
 
     public void computeMaxInfluence(JavaPairRDD<Integer, Double> nodesInfluencePair) {
         JavaPairRDD<Integer, Double> nodesInfluenceReduced = reduceByKey(nodesInfluencePair);
@@ -19,21 +30,7 @@ public class MaxInfluenceAnalysis implements Serializable {
     }
     
     private Tuple2<Integer, Double> getMaxInfluence(JavaPairRDD<Integer, Double> nodesInfluenceReduced) {
-        return nodesInfluenceReduced
-                .reduce(new Function2<Tuple2<Integer, Double>, Tuple2<Integer, Double>, Tuple2<Integer, Double>>() {
-
-                    private static final long serialVersionUID = -1151045189581289744L;
-
-                    @Override
-                    public Tuple2<Integer, Double> call(Tuple2<Integer, Double> v1, Tuple2<Integer, Double> v2)
-                            throws Exception {
-                        if (Double.compare(v1._2(), v2._2()) > 0) {
-                            return v1;
-                        } else {
-                            return v2;
-                        }
-                    }
-                });
+        return nodesInfluenceReduced.max(new MaxComparator());
     }
     
     private JavaPairRDD<Integer, Double> reduceByKey(JavaPairRDD<Integer, Double> nodesInfluencePair) {
