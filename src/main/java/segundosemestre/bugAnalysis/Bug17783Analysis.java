@@ -31,7 +31,7 @@ public class Bug17783Analysis {
                 .enableHiveSupport()
                 .getOrCreate();
         
-        String sql = "CREATE TABLE TAB15 USING org.apache.spark.sql.jdbc OPTIONS (url 'jdbc:h2:mem:testdb0;user=testUser;password=testPass', dbtable 'TEST.PEOPLE',"
+        String sql = "CREATE TABLE TAB16 USING org.apache.spark.sql.jdbc OPTIONS (url 'jdbc:h2:mem:testdb0;user=testUser;password=testPass', dbtable 'TEST.PEOPLE',"
                 + " user 'testUser', password 'testPass')";
         
         SparkPlan p = spark.sql(sql).queryExecution().executedPlan();

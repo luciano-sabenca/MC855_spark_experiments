@@ -20,4 +20,6 @@ dependencies {
     compile 'org.apache.spark:spark-sql_2.11:2.0.0'
     compile group: 'graphframes', name: 'graphframes', version: '0.2.0-spark2.0-s_2.11'
     testCompile group: 'junit', name: 'junit', version: '4.11'
+    compile group: 'com.h2database', name: 'h2', version: '1.4.192'
+    compile group: 'org.apache.spark', name: 'spark-hive_2.11', version: '2.0.0'
 }
